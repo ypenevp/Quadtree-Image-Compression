@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
 #define MEMCHECK(ptr)                         \
     if (ptr == NULL)                          \
@@ -18,6 +17,7 @@
         printf("Error opening file '%s'!!!\n", filename);      \
         exit(1);                                              \
     }
+
 
 typedef struct
 {
