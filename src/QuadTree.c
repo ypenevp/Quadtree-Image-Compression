@@ -118,3 +118,49 @@ void releaseQT(QuadTree *qt)
     qt->width = 0;
     qt->height = 0;
 }
+
+////////////////////////////////////////////////////
+
+static void fillRegionImg(Image *img, int startX, int startY, int a, Pixel color)
+{
+    int maxX = startX + a > img->width ? img->width : startX + a;
+    int maxY = startY + a > img->height ? img->height : startY + a;
+
+    for (int y = startY; y < maxY; y++){
+        for (int x = startX; x < maxX; x++){
+            img->data[y * img->width + x] = color;
+        }
+    }
+
+}
+
+static void reconstructNodeQT(QTNode *node, Image *img, int startX, int startY, int a)
+{
+    if (node == NULL){
+        return;
+    }
+
+    if (node->isLeaf)
+    {
+        fillRegionImg(img, startX, startY, a, node->color);
+    }
+    else
+    {
+        int halfA = a / 2;
+        reconstructNodeQT(node->children[0], img, startX, startY, halfA);
+        reconstructNodeQT(node->children[1], img, startX + halfA, startY, halfA);
+        reconstructNodeQT(node->children[2], img, startX, startY + halfA, halfA);
+        reconstructNodeQT(node->children[3], img, startX + halfA, startY + halfA, halfA);
+    }
+}
+
+void reconstructImageQT(QuadTree *qt, Image *outputImg)
+{
+    int squareImgSize = 1;
+    int currentImgMaxSize = qt->width > qt->height ? qt->width : qt->height;
+    while (squareImgSize < currentImgMaxSize){
+        squareImgSize *= 2;
+    }
+
+    reconstructNodeQT(qt->root, outputImg, 0, 0, squareImgSize);
+}

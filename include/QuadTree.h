@@ -21,4 +21,6 @@ QTNode *createNodeQT(Pixel color, bool isLeaf);
 QuadTree initQT(Image *img, double threshold, int minBlockSize);
 void releaseQT(QuadTree *qt);
 
+void reconstructImageQT(QuadTree *qt, Image *outputImg);
+
 #endif
