@@ -22,5 +22,7 @@ QuadTree initQT(Image *img, double threshold, int minBlockSize);
 void releaseQT(QuadTree *qt);
 
 void reconstructImageQT(QuadTree *qt, Image *outputImg);
+void saveQTToBin(QuadTree *qt, const char *filename);
+QuadTree loadQTFromBin(const char *filename);
 
 #endif

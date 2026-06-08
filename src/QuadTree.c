@@ -164,3 +164,78 @@ void reconstructImageQT(QuadTree *qt, Image *outputImg)
 
     reconstructNodeQT(qt->root, outputImg, 0, 0, squareImgSize);
 }
+
+////////////////////////////////////////////////////
+
+void serializeNodeQT(QTNode *node, FILE *file)
+{
+    if (node == NULL)
+    {
+        fputc('N', file);
+        return;
+    }
+    if (node->isLeaf)
+    {
+        fputc('L', file);
+        fwrite(&node->color.r, 1, 1, file);
+        fwrite(&node->color.g, 1, 1, file);
+        fwrite(&node->color.b, 1, 1, file);
+    }
+    else
+    {
+        fputc('I', file);
+        for (int i = 0; i < 4; i++)
+            serializeNodeQT(node->children[i], file);
+    }
+}
+
+void saveQTToBin(QuadTree *qt, const char *filename)
+{
+    FILE *file = fopen(filename, "wb");
+    FILECHECK(file, filename);
+
+    fwrite(&qt->width, sizeof(int), 1, file);
+    fwrite(&qt->height, sizeof(int), 1, file);
+
+    serializeNodeQT(qt->root, file);
+    fclose(file);
+}
+
+////////////////////////////////////////////////////
+
+QTNode *deserializeNodeQT(FILE *file)
+{
+    int type = fgetc(file);
+    if (type == 'N' || type == EOF){
+        return NULL;
+    }
+    if (type == 'L')
+    {
+        Pixel color;
+        fread(&color.r, 1, 1, file);
+        fread(&color.g, 1, 1, file);
+        fread(&color.b, 1, 1, file);
+        return createNodeQT(color, true);
+    }
+    Pixel empty = {0, 0, 0};
+    QTNode *node = createNodeQT(empty, false);
+    for (int i = 0; i < 4; i++){
+        node->children[i] = deserializeNodeQT(file);
+    }
+    return node;
+}
+
+QuadTree loadQTFromBin(const char *filename)
+{
+    QuadTree qt = {NULL, 0, 0};
+
+    FILE *file = fopen(filename, "rb");
+    FILECHECK(file, filename);
+
+    fread(&qt.width, sizeof(int), 1, file);
+    fread(&qt.height, sizeof(int), 1, file);
+    qt.root = deserializeNodeQT(file);
+
+    fclose(file);
+    return qt;
+}
