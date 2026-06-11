@@ -108,6 +108,32 @@ int getImagePath(char *pathBuffer, bool *isCustom)
     return 1;
 }
 
+int getBinPath(char *pathBuffer)
+{
+    const char *opts[] = {"Default (assets/output.bin)", "Custom path", "Back"};
+    int choice = runMenu("Select Binary File", opts, 3);
+
+    switch (choice)
+    {
+
+        case 0:
+            system("cls");
+            strcpy(pathBuffer, "assets/output.bin");
+            break;
+
+        case 1:
+            system("cls");
+            printf(YELLOW "  Binary file path: " RESET);
+            scanf("%255s", pathBuffer);
+            break;
+
+        case 2:
+            return 0;
+    }
+
+    return 1;
+}
+
 ////////////////////////////////////////////////////
 
 double getThreshold()
@@ -189,18 +215,94 @@ void compressToPPM()
 
 ////////////////////////////////////////////////////
 
+void compressToBIN()
+{
+    char imagePath[256];
+    bool isCustom;
+    if (!getImagePath(imagePath, &isCustom)){
+        return;
+    }
+    double threshold = getThreshold();
+    int minBlockSize = getMinBlockSize();
+
+    char binPath[256];
+
+    if (!isCustom)
+    {
+        strcpy(binPath, "assets/output.bin");
+    }
+    else
+    {
+        char *fileName = strrchr(imagePath, '\\');
+
+        if (fileName == NULL){
+            fileName = imagePath;
+        }
+        else{
+            fileName++;
+        }
+
+        char baseName[256];
+        strcpy(baseName, fileName);
+
+        char *extension = strrchr(baseName, '.');
+        if (extension != NULL){
+            *extension = '\0';
+        }
+
+    sprintf(binPath, "assets/%s_bin.bin", baseName);
+}
+
+    Image input = readPPM(imagePath);
+    QuadTree qTree = initQT(&input, threshold, minBlockSize); 
+    saveQTToBin(&qTree, binPath);
+
+    releaseImage(&input);
+    releaseQT(&qTree);
+
+    printf(GREEN "\n  Saved to %s\n" RESET, binPath);
+    printf(DIM "\n  Press any key to continue..." RESET);
+    _getch();
+}
+
+void decompressBIN()
+{
+    char binPath[256];
+    if (!getBinPath(binPath)){
+        return;
+    }
+
+    QuadTree qTree = loadQTFromBin(binPath);
+    Image output = initImage(qTree.width, qTree.height);
+    reconstructImageQT(&qTree, &output);
+    writePPM("assets/decompressed.ppm", &output);
+
+    releaseImage(&output);
+    releaseQT(&qTree);
+
+    printf(GREEN "\n  Saved to assets/decompressed.ppm\n" RESET);
+    printf(DIM "\n  Press any key to continue..." RESET);
+    _getch();
+}
+
+////////////////////////////////////////////////////
+
 int main()
 {
     const char *mainOpts[] = {
         "Compress to PPM",
+        "Compress PPM to BIN",
+        "Decompress BIN to  PPM",
         "Exit"};
 
     while (true)
     {
-        int choice = runMenu("QuadTree Image Compressor", mainOpts, 2);
+        int choice = runMenu("QuadTree Image Compressor", mainOpts, 4);
         switch(choice){
             case 0: compressToPPM(); break;
-            case 1: system("cls"); return 0;
+            case 1: compressToBIN(); break;
+            case 2: decompressBIN(); break;
+            case 3: system("cls"); return 0;
         }
     }
 
