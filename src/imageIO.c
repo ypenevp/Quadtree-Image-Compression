@@ -31,8 +31,8 @@ Image readPPM(const char *filename)
     FILE *file = fopen(filename, "rb");
     FILECHECK(file, filename);
 
-    char format[3];
-    fscanf(file, "%2s", format);
+    fgetc(file); // for "P"
+    fgetc(file); // for "6"
 
     int width = 0, height = 0, maxColor = 0;
     fscanf(file, "%d %d %d", &width, &height, &maxColor);
@@ -45,14 +45,14 @@ Image readPPM(const char *filename)
     return img;
 }
 
-void writePPM(const char *filename, Image *img)
+void writePPM(const char *filename, Image img)
 {
     FILE *file = fopen(filename, "wb");
     FILECHECK(file, filename);
 
-    fprintf(file, "P6\n%d %d\n255\n", img->width, img->height);
+    fprintf(file, "P6\n%d %d\n255\n", img.width, img.height);
 
-    fwrite(img->data, sizeof(Pixel), img->width * img->height, file);
+    fwrite(img.data, sizeof(Pixel), img.width * img.height, file);
 
     fclose(file);
 }

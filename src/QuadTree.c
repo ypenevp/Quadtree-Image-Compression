@@ -54,7 +54,7 @@ static Pixel averageColor(Image *img, int startX, int startY, int a, double *var
     *variance = (0.2126 * varR + 0.7152 * varG + 0.0722 * varB) / count; 
 
     // Convert double average color to 8-bit RGB pixel format
-    Pixel avgPixel = {(unsigned char)avgR, (unsigned char)avgG, (unsigned char)avgB};
+    Pixel avgPixel = {(unsigned char)(avgR + 0.5), (unsigned char)(avgG + 0.5), (unsigned char)(avgB + 0.5)};
     return avgPixel;
 }
 
@@ -216,6 +216,9 @@ QTNode *deserializeNodeQT(FILE *file)
         fread(&color.g, 1, 1, file);
         fread(&color.b, 1, 1, file);
         return createNodeQT(color, true);
+    }
+    if (type != 'I') {
+        return NULL;
     }
     Pixel empty = {0, 0, 0};
     QTNode *node = createNodeQT(empty, false);

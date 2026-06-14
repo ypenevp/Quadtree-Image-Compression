@@ -108,21 +108,22 @@ int getImagePath(char *pathBuffer, bool *isCustom)
     return 1;
 }
 
-int getBinPath(char *pathBuffer)
+int getBinPath(char *pathBuffer, bool *isCustom)
 {
     const char *opts[] = {"Default (assets/output.bin)", "Custom path", "Back"};
     int choice = runMenu("Select Binary File", opts, 3);
 
     switch (choice)
     {
-
         case 0:
             system("cls");
+            *isCustom = false;
             strcpy(pathBuffer, "assets/output.bin");
             break;
 
         case 1:
             system("cls");
+            *isCustom = true;
             printf(YELLOW "  Binary file path: " RESET);
             scanf("%255s", pathBuffer);
             break;
@@ -160,6 +161,41 @@ int getMinBlockSize()
 
 ////////////////////////////////////////////////////
 
+void buildOutputPath(const char *inputPath, bool isCustom, const char *defaultPath, const char *suffix, char *outputPath)
+{
+    if (!isCustom)
+    {
+        strcpy(outputPath, defaultPath);
+        return;
+    }
+
+    char *fileName = strrchr(inputPath, '\\');
+
+    if (fileName == NULL){
+        fileName = (char *)inputPath;
+    }
+    else{
+        fileName++; // move pointer from "\" to first letter from the name
+    }
+
+    char baseName[256];
+    strcpy(baseName, fileName);
+
+    char *extension = strrchr(baseName, '.');
+    if (extension != NULL){
+        *extension = '\0'; // "zdr.ppm" => "zdr"
+    }
+
+    char *binSuffix = strstr(baseName, "_bin"); // search for "_bin", because we don`t want: lanscape_bin_out.ppm
+    if (binSuffix != NULL){
+        *binSuffix = '\0'; // "landscape_bin" => "landscape"
+    }
+
+    snprintf(outputPath, 256, "assets/%s_%s", baseName, suffix);
+}
+
+////////////////////////////////////////////////////
+
 void compressToPPM()
 {
     char imagePath[256];
@@ -171,38 +207,13 @@ void compressToPPM()
     int minBlockSize = getMinBlockSize();
 
     char outputPath[256];
-
-    if (!isCustom)
-    {
-        strcpy(outputPath, "assets/output.ppm");
-    }
-    else
-    {
-        char *fileName = strrchr(imagePath, '\\');
-
-        if (fileName == NULL){
-            fileName = imagePath;
-        }
-        else{
-            fileName++; // move pointer from "\" to first letter from the name
-        }
-
-        char baseName[256];
-        strcpy(baseName, fileName);
-
-        char *extension = strrchr(baseName, '.');
-        if (extension != NULL){ 
-            *extension = '\0'; // "zdr.ppm" => "zdr"
-        }
-
-        sprintf(outputPath, "assets/%s_out.ppm", baseName);
-    }
+    buildOutputPath(imagePath, isCustom, "assets/output.ppm", "out.ppm", outputPath);
 
     Image input = readPPM(imagePath);
     QuadTree qTree = initQT(&input, threshold, minBlockSize);
     Image output = initImage(input.width, input.height);
     reconstructImageQT(&qTree, &output);
-    writePPM(outputPath, &output);
+    writePPM(outputPath, output);
 
     releaseImage(&input);
     releaseImage(&output);
@@ -226,35 +237,10 @@ void compressToBIN()
     int minBlockSize = getMinBlockSize();
 
     char binPath[256];
-
-    if (!isCustom)
-    {
-        strcpy(binPath, "assets/output.bin");
-    }
-    else
-    {
-        char *fileName = strrchr(imagePath, '\\');
-
-        if (fileName == NULL){
-            fileName = imagePath;
-        }
-        else{
-            fileName++;
-        }
-
-        char baseName[256];
-        strcpy(baseName, fileName);
-
-        char *extension = strrchr(baseName, '.');
-        if (extension != NULL){
-            *extension = '\0';
-        }
-
-    sprintf(binPath, "assets/%s_bin.bin", baseName);
-}
+    buildOutputPath(imagePath, isCustom, "assets/output.bin", "bin.bin", binPath);
 
     Image input = readPPM(imagePath);
-    QuadTree qTree = initQT(&input, threshold, minBlockSize); 
+    QuadTree qTree = initQT(&input, threshold, minBlockSize);
     saveQTToBin(&qTree, binPath);
 
     releaseImage(&input);
@@ -265,22 +251,28 @@ void compressToBIN()
     _getch();
 }
 
+////////////////////////////////////////////////////
+
 void decompressBIN()
 {
     char binPath[256];
-    if (!getBinPath(binPath)){
+    bool isCustom;
+    if (!getBinPath(binPath, &isCustom)){
         return;
     }
+
+    char outputPath[256];
+    buildOutputPath(binPath, isCustom, "assets/decompressed.ppm", "out.ppm", outputPath);
 
     QuadTree qTree = loadQTFromBin(binPath);
     Image output = initImage(qTree.width, qTree.height);
     reconstructImageQT(&qTree, &output);
-    writePPM("assets/decompressed.ppm", &output);
+    writePPM(outputPath, output);
 
     releaseImage(&output);
     releaseQT(&qTree);
 
-    printf(GREEN "\n  Saved to assets/decompressed.ppm\n" RESET);
+    printf(GREEN "\n  Saved to %s\n" RESET, outputPath);
     printf(DIM "\n  Press any key to continue..." RESET);
     _getch();
 }
@@ -292,7 +284,7 @@ int main()
     const char *mainOpts[] = {
         "Compress to PPM",
         "Compress PPM to BIN",
-        "Decompress BIN to  PPM",
+        "Decompress BIN to PPM",
         "Exit"};
 
     while (true)

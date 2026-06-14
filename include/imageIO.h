@@ -37,6 +37,6 @@ Image initImage(int width, int height);
 void releaseImage(Image *img);
 
 Image readPPM(const char *filename);
-void writePPM(const char *filename, Image *img);
+void writePPM(const char *filename, Image img);
 
 #endif
